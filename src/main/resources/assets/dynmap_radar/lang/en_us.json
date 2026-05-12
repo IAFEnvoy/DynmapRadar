@@ -1,0 +1,8 @@
+{
+  "dynmap_radar.right_click.title": "Choose an Option",
+  "dynmap_radar.right_click.copy_name": "Copy Name",
+  "dynmap_radar.right_click.copy_coords": "Copy Coords",
+  "dynmap_radar.right_click.copy_full": "Copy Full Info",
+  "dynmap_radar.right_click.teleport": "Teleport",
+  "dynmap_radar.right_click.create_waypoint": "Create Waypoint"
+}

@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"id": "dynmap_radar",
+	"version": "${version}",
+	"name": "DynmapRadar",
+	"description": "Display Dynmap data on Xaero's Minimap and World Map.",
+	"authors": [
+		"IAFEnvoy"
+	],
+	"contact": {
+		"sources": "https://github.com/IAFEnvoy/DynmapRadar"
+	},
+	"license": "All Right Reserved",
+	"icon": "assets/dynmap_radar/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.iafenvoy.dynmap.radar.DynmapRadarClient"
+		]
+	},
+	"depends": {
+		"minecraft": "1.20.x",
+		"xaeroworldmap": "*",
+		"xaerominimap": "*"
+	}
+}

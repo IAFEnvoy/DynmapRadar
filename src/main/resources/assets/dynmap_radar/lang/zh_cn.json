@@ -1,0 +1,8 @@
+{
+  "dynmap_radar.right_click.title": "选择一个操作",
+  "dynmap_radar.right_click.copy_name": "复制名称",
+  "dynmap_radar.right_click.copy_coords": "复制坐标",
+  "dynmap_radar.right_click.copy_full": "复制完整信息",
+  "dynmap_radar.right_click.teleport": "传送到此坐标",
+  "dynmap_radar.right_click.create_waypoint": "创建路径点"
+}
