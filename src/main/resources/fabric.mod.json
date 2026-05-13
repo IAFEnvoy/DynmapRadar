@@ -11,7 +11,7 @@
 		"sources": "https://github.com/IAFEnvoy/DynmapRadar"
 	},
 	"license": "All Right Reserved",
-	"icon": "assets/dynmap_radar/icon.png",
+	"icon": "logo.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
