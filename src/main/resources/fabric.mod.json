@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "dynmap_radar",
 	"version": "${version}",
-	"name": "DynmapRadar",
+	"name": "Dynmap Radar",
 	"description": "Display Dynmap data on Xaero's Minimap and World Map.",
 	"authors": [
 		"IAFEnvoy"

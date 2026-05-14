@@ -9,17 +9,22 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DynmapDataFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(DynmapRadarClient.MOD_ID + "_fetcher");
     private static final Gson GSON = new GsonBuilder().create();
+    private static final int FULL_REFRESH_INTERVAL = 30;
 
-    private List<DynmapPlayerData> currentPlayers = Collections.emptyList();
+    private List<DynmapPlayerData> currentPlayers = new CopyOnWriteArrayList<>();
     private final MarkerState markerState = new MarkerState();
+    private Set<String> dynmapWorlds = new HashSet<>();
     private long lastTimestamp = 0;
     private long lastConfigHash = -1;
     private String currentDynmapUrl = "";
     private boolean initialFetchDone = false;
+    private int fetchCount = 0;
 
     public MarkerState getMarkerState() {
         return this.markerState;
@@ -29,16 +34,23 @@ public class DynmapDataFetcher {
         return this.currentPlayers;
     }
 
+    /** Set of Dynmap world names (e.g. "world", "DIM-1", "DIM1") from /up/configuration. */
+    public Set<String> getDynmapWorlds() {
+        return this.dynmapWorlds;
+    }
+
     /**
      * Reset all state when disconnecting from a server.
      */
     public void reset() {
         this.currentPlayers = Collections.emptyList();
         this.markerState.clear();
+        this.dynmapWorlds.clear();
         this.lastTimestamp = 0;
         this.lastConfigHash = -1;
         this.currentDynmapUrl = "";
         this.initialFetchDone = false;
+        this.fetchCount = 0;
     }
 
     public CompletableFuture<Void> doFetch() {
@@ -54,13 +66,9 @@ public class DynmapDataFetcher {
                 this.lastTimestamp = 0;
                 this.lastConfigHash = -1;
                 this.initialFetchDone = false;
+                this.fetchCount = 0;
                 this.currentPlayers = Collections.emptyList();
-                // Reset marker state and load initial markers
-                this.markerState.sets.clear();
-                this.markerState.pointMarkers.clear();
-                this.markerState.areaMarkers.clear();
-                this.markerState.lineMarkers.clear();
-                this.markerState.circleMarkers.clear();
+                this.markerState.clear();
                 this.fetchInitialMarkers(url);
             }
 
@@ -85,19 +93,15 @@ public class DynmapDataFetcher {
                 if (json != null) {
                     DynmapApiResponse resp = GSON.fromJson(json, DynmapApiResponse.class);
                     if (resp != null) {
-                        // Players: on initial fetch, take all. On update, merge.
-                        if (this.initialFetchDone) {
-                            this.mergePlayers(resp.players);
-                        } else {
-                            if (resp.players != null) {
-                                this.currentPlayers = new ArrayList<>();
-                                for (DynmapPlayerData p : resp.players) {
-                                    if ("player".equals(p.type) && "world".equals(p.world))
-                                        this.currentPlayers.add(p);
-                                }
+                        // Players: always replace with current online list from server
+                        if (resp.players != null) {
+                            this.currentPlayers = new ArrayList<>();
+                            for (DynmapPlayerData p : resp.players) {
+                                if ("player".equals(p.type) && "world".equals(p.world))
+                                    this.currentPlayers.add(p);
                             }
-                            this.initialFetchDone = true;
                         }
+                        this.initialFetchDone = true;
 
                         // Process marker/area/line/circle updates
                         if (resp.updates != null) {
@@ -105,6 +109,12 @@ public class DynmapDataFetcher {
                                 if (up.isTile()) continue;
                                 this.markerState.applyUpdate(up);
                             }
+                        }
+
+                        // Periodic full marker refresh to catch removals without delete events
+                        this.fetchCount++;
+                        if (this.fetchCount % FULL_REFRESH_INTERVAL == 0) {
+                            this.refreshMarkersFromFullSnapshot(url);
                         }
                     }
                 }
@@ -122,6 +132,16 @@ public class DynmapDataFetcher {
         String json = HttpUtil.getString(baseUrl + "/up/configuration");
         if (json != null) {
             JsonObject cfg = JsonParser.parseString(json).getAsJsonObject();
+            // Extract world names for dim mapping suggestions
+            if (cfg.has("worlds") && cfg.get("worlds").isJsonArray()) {
+                JsonArray worldsArr = cfg.getAsJsonArray("worlds");
+                Set<String> worlds = new HashSet<>();
+                for (JsonElement w : worldsArr) {
+                    if (w.isJsonObject() && w.getAsJsonObject().has("name"))
+                        worlds.add(w.getAsJsonObject().get("name").getAsString());
+                }
+                this.dynmapWorlds = worlds;
+            }
             if (cfg.has("confighash")) {
                 return cfg.get("confighash").getAsInt();
             }
@@ -130,30 +150,38 @@ public class DynmapDataFetcher {
     }
 
     /**
-     * Merge incremental player list: add/update by account, remove players no longer present.
+     * Periodic full marker refresh: re-fetch marker_world.json into temporary maps,
+     * then atomically swap to avoid flicker and ConcurrentModificationException.
      */
-    private void mergePlayers(List<DynmapPlayerData> incoming) {
-        if (incoming == null || incoming.isEmpty()) return;
-        List<DynmapPlayerData> merged = new ArrayList<>(this.currentPlayers);
-        for (DynmapPlayerData inc : incoming) {
-            if (!"player".equals(inc.type) || !"world".equals(inc.world)) continue;
-            boolean found = false;
-            for (int i = 0; i < merged.size(); i++) {
-                if (merged.get(i).account.equals(inc.account)) {
-                    merged.set(i, inc); // update position
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) merged.add(inc);
-        }
-        this.currentPlayers = merged;
+    private void refreshMarkersFromFullSnapshot(String baseUrl) {
+        Map<String, List<MarkerState.PointMarker>> newPoints = new ConcurrentHashMap<>();
+        Map<String, List<MarkerState.AreaMarker>> newAreas = new ConcurrentHashMap<>();
+        Map<String, List<MarkerState.PolyLineMarker>> newLines = new ConcurrentHashMap<>();
+        Map<String, List<MarkerState.CircleMarker>> newCircles = new ConcurrentHashMap<>();
+        fetchInitialMarkersIntoMaps(baseUrl, newPoints, newAreas, newLines, newCircles);
+        this.markerState.swapMarkerData(newPoints, newAreas, newLines, newCircles);
     }
 
     /**
-     * Fetch the full marker snapshot from tiles/_markers_/marker_world.json on first connect.
+     * Fetch the full marker snapshot from tiles/_markers_/marker_world.json.
+     * Used for both initial load (into markerState directly) and periodic refresh (via refreshMarkersFromFullSnapshot).
      */
     private void fetchInitialMarkers(String baseUrl) {
+        fetchInitialMarkersIntoMaps(baseUrl,
+                this.markerState.pointMarkers,
+                this.markerState.areaMarkers,
+                this.markerState.lineMarkers,
+                this.markerState.circleMarkers);
+    }
+
+    /**
+     * Populate the given maps from marker_world.json. All inner lists use CopyOnWriteArrayList.
+     */
+    private void fetchInitialMarkersIntoMaps(String baseUrl,
+                                              Map<String, List<MarkerState.PointMarker>> pointsOut,
+                                              Map<String, List<MarkerState.AreaMarker>> areasOut,
+                                              Map<String, List<MarkerState.PolyLineMarker>> linesOut,
+                                              Map<String, List<MarkerState.CircleMarker>> circlesOut) {
         String json = HttpUtil.getString(baseUrl + "/tiles/_markers_/marker_world.json", 5000, 10000);
         if (json == null) return;
         try {
@@ -187,7 +215,7 @@ public class DynmapDataFetcher {
                             int mminz = m.has("minzoom") ? m.get("minzoom").getAsInt() : -1;
                             int mmaxz = m.has("maxzoom") ? m.get("maxzoom").getAsInt() : -1;
                             MarkerState.PointMarker pm = new MarkerState.PointMarker(markerId, mlabel, mx, my, mz, icon, desc, mminz, mmaxz);
-                            this.markerState.pointMarkers.computeIfAbsent(setId, k -> new ArrayList<>()).add(pm);
+                            pointsOut.computeIfAbsent(setId, k -> new CopyOnWriteArrayList<>()).add(pm);
                         }
                     }
 
@@ -213,7 +241,7 @@ public class DynmapDataFetcher {
                                 int ci = parseHexColor(color);
                                 int fi = parseHexColor(fillcolor);
                                 MarkerState.AreaMarker am = new MarkerState.AreaMarker(areaId, alabel, ax, az, ytop, ybottom, weight, opacity, ci, fillopacity, fi, desc, aminz, amaxz);
-                                this.markerState.areaMarkers.computeIfAbsent(setId, k -> new ArrayList<>()).add(am);
+                                areasOut.computeIfAbsent(setId, k -> new CopyOnWriteArrayList<>()).add(am);
                             }
                         }
                     }
@@ -240,7 +268,7 @@ public class DynmapDataFetcher {
                                 }
                                 int ci = parseHexColor(color);
                                 MarkerState.PolyLineMarker lm = new MarkerState.PolyLineMarker(lineId, llabel, lx, ly, lz, weight, opacity, ci, desc, lminz, lmaxz);
-                                this.markerState.lineMarkers.computeIfAbsent(setId, k -> new ArrayList<>()).add(lm);
+                                linesOut.computeIfAbsent(setId, k -> new CopyOnWriteArrayList<>()).add(lm);
                             }
                         }
                     }
@@ -267,7 +295,7 @@ public class DynmapDataFetcher {
                             int ci = parseHexColor(color);
                             int fi = parseHexColor(fillcolor);
                             MarkerState.CircleMarker cm = new MarkerState.CircleMarker(circleId, clabel, cx, cy, cz, xr, zr, weight, opacity, ci, fillopacity, fi, desc, cminz, cmaxz);
-                            this.markerState.circleMarkers.computeIfAbsent(setId, k -> new ArrayList<>()).add(cm);
+                            circlesOut.computeIfAbsent(setId, k -> new CopyOnWriteArrayList<>()).add(cm);
                         }
                     }
                 }

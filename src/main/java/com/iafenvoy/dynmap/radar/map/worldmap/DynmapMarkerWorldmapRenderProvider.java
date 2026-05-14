@@ -5,19 +5,45 @@ import com.iafenvoy.dynmap.radar.config.ServerConfig;
 import com.iafenvoy.dynmap.radar.data.MarkerState;
 import com.iafenvoy.dynmap.radar.map.DynmapMarkerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
+import xaero.map.WorldMapSession;
 import xaero.map.element.MapElementRenderProvider;
 import xaero.map.element.render.ElementRenderLocation;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class DynmapMarkerWorldmapRenderProvider extends MapElementRenderProvider<DynmapMarkerElement, DynmapPlayerElementRenderContext> {
     private Iterator<DynmapMarkerElement> iterator;
 
     @Override
     public void begin(int l, DynmapPlayerElementRenderContext ctx) {
-        MarkerState state = DynmapRadarClient.DATA_FETCHER.getMarkerState();
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        Map<String, String> dimMapping = cfg.dimensionMapping;
+
+        // If no dimension mapping is configured, don't render anything
+        if (dimMapping.isEmpty()) {
+            this.iterator = List.<DynmapMarkerElement>of().iterator();
+            return;
+        }
+
+        // Check if current Xaero dimension matches any mapping
+        WorldMapSession session = WorldMapSession.getCurrentSession();
+        if (session == null) {
+            this.iterator = List.<DynmapMarkerElement>of().iterator();
+            return;
+        }
+        String currentXaeroDim = session.getMapProcessor().getMapWorld().getCurrentDimensionId().location().toString();
+        boolean matches = false;
+        for (String mappedDim : dimMapping.values()) {
+            if (mappedDim.equals(currentXaeroDim)) { matches = true; break; }
+        }
+        if (!matches) {
+            this.iterator = List.<DynmapMarkerElement>of().iterator();
+            return;
+        }
+
+        MarkerState state = DynmapRadarClient.DATA_FETCHER.getMarkerState();
         this.iterator = (state != null ? state.collectElements(cfg::isLayerVisibleWorldmap, false) : List.<DynmapMarkerElement>of()).iterator();
     }
 

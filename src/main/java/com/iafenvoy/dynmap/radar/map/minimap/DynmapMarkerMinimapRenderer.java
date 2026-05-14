@@ -44,6 +44,7 @@ public class DynmapMarkerMinimapRenderer extends MinimapElementRenderer<DynmapMa
         this.bufferSource = bs;
         this.getContext().cameraX = ri.renderPos.x;
         this.getContext().cameraZ = ri.renderPos.z;
+        this.getContext().cachedScale = ri.backgroundCoordinateScale;
     }
 
     @Override

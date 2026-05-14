@@ -6,6 +6,7 @@ import com.iafenvoy.dynmap.radar.data.DynmapDataFetcher;
 import com.iafenvoy.dynmap.radar.data.DynmapPlayerData;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
+import xaero.map.WorldMapSession;
 import xaero.map.element.MapElementRenderProvider;
 import xaero.map.element.render.ElementRenderLocation;
 import net.minecraft.client.Minecraft;
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -77,10 +79,27 @@ public class DynmapPlayerWorldmapRenderProvider extends MapElementRenderProvider
     /**
      * Refresh the element list from the latest fetched data,
      * excluding players that are loaded locally.
+     * Only renders when a dimension mapping matches the current map dimension.
      */
     private void refreshElements() {
         List<DynmapPlayerData> players = this.dataFetcher.getCurrentPlayers();
         this.currentElements.clear();
+
+        ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        Map<String, String> dimMapping = cfg.dimensionMapping;
+
+        // If no dimension mapping is configured, don't render anything
+        if (dimMapping.isEmpty()) return;
+
+        // Check if current Xaero dimension matches any mapping
+        WorldMapSession session = WorldMapSession.getCurrentSession();
+        if (session == null) return;
+        String currentXaeroDim = session.getMapProcessor().getMapWorld().getCurrentDimensionId().location().toString();
+        boolean matches = false;
+        for (String mappedDim : dimMapping.values()) {
+            if (mappedDim.equals(currentXaeroDim)) { matches = true; break; }
+        }
+        if (!matches) return;
 
         // Collect names of locally loaded players to exclude them
         Set<String> localPlayerNames = new HashSet<>();
@@ -91,9 +110,6 @@ public class DynmapPlayerWorldmapRenderProvider extends MapElementRenderProvider
                 localPlayerNames.add(player.getName().getString().toLowerCase());
             }
         }
-
-        // Build display name based on config
-        ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
 
         for (DynmapPlayerData p : players) {
             // Skip if this account matches a locally loaded player

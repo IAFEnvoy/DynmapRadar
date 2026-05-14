@@ -13,12 +13,16 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.Minecraft;
+import xaero.map.WorldMapSession;
+import xaero.map.world.MapDimension;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
@@ -109,6 +113,12 @@ public class DynmapRadarCommands {
                     cfg -> cfg.waypointColor,
                     (cfg, v) -> cfg.waypointColor = v);
 
+            CommandUtil.appendSetting(settings, "pointMinScale",
+                    DoubleArgumentType.doubleArg(0, 10),
+                    DoubleArgumentType::getDouble,
+                    cfg -> cfg.pointMinScale,
+                    (cfg, v) -> cfg.pointMinScale = v);
+
             CommandUtil.appendSetting(settings, "interval",
                     IntegerArgumentType.integer(100, 60000),
                     IntegerArgumentType::getInteger,
@@ -131,16 +141,25 @@ public class DynmapRadarCommands {
 
             dim.then(literal("map")
                     .then(argument("dynmapWorld", StringArgumentType.word())
+                            .suggests((ctx, builder) -> {
+                                        Set<String> worlds = DynmapRadarClient.DATA_FETCHER.getDynmapWorlds();
+                                        if (worlds.isEmpty()) return SharedSuggestionProvider.suggest(List.of("world"), builder);
+                                        return SharedSuggestionProvider.suggest(worlds, builder);
+                                    })
                             .then(argument("xaeroDimension", StringArgumentType.word())
                                     .suggests((ctx, builder) -> {
                                         List<String> dims = new ArrayList<>();
-                                        Minecraft mc = Minecraft.getInstance();
-                                        if (mc.level != null) {
-                                            dims.add(mc.level.dimension().location().toString());
+                                        WorldMapSession session = WorldMapSession.getCurrentSession();
+                                        if (session != null) {
+                                            for (MapDimension d : session.getMapProcessor().getMapWorld().getDimensionsList()) {
+                                                dims.add(d.getDimId().location().toString());
+                                            }
                                         }
-                                        dims.add("minecraft:overworld");
-                                        dims.add("minecraft:the_nether");
-                                        dims.add("minecraft:the_end");
+                                        if (dims.isEmpty()) {
+                                            Minecraft mc = Minecraft.getInstance();
+                                            if (mc.level != null)
+                                                dims.add(mc.level.dimension().location().toString());
+                                        }
                                         return SharedSuggestionProvider.suggest(dims, builder);
                                     })
                                     .executes(ctx -> {
@@ -176,24 +195,25 @@ public class DynmapRadarCommands {
     private static int showStatus(FabricClientCommandSource source) {
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
         String key = DynmapRadarClient.CONFIG_MANAGER.getCurrentServerKey();
-        source.sendFeedback(Component.literal("=== DynmapRadar [" + key + "] ===").withStyle(ChatFormatting.GOLD));
-        source.sendFeedback(Component.literal("URL: " + (cfg.dynmapMain.isEmpty() ? "<not set>" : cfg.dynmapMain)));
-        source.sendFeedback(Component.literal("Display mode: " + cfg.nameDisplayMode));
-        source.sendFeedback(Component.literal("Head size: " + cfg.headSize));
-        source.sendFeedback(Component.literal("Update interval: " + cfg.updateInterval + "ms"));
-        source.sendFeedback(Component.literal("Marker scale: " + String.format("%.1f", cfg.markerScale)));
-        source.sendFeedback(Component.literal("Point icon scale: " + String.format("%.1f", cfg.pointIconScale)));
-        source.sendFeedback(Component.literal("Point follow zoom: " + cfg.pointSizeFollowZoom));
-        source.sendFeedback(Component.literal("Head follow zoom: " + cfg.headSizeFollowZoom));
-        source.sendFeedback(Component.literal("Show markers in minimap: " + cfg.markerShowInMinimap));
-        source.sendFeedback(Component.literal("Minimap show shapes: " + cfg.minimapShowShapes));
-        source.sendFeedback(Component.literal("Minimap cull radius: " + String.format("%.0f", cfg.minimapCullRadius)));
-        source.sendFeedback(Component.literal("Waypoint color: #" + String.format("%06X", cfg.waypointColor)));
-        source.sendFeedback(Component.literal("World layers: " + formatLayerList(cfg.worldLayerVisibility, cfg.layerDefaults)));
-        source.sendFeedback(Component.literal("Minimap layers: " + formatLayerList(cfg.minimapLayerVisibility, cfg.layerDefaults)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.title", key).withStyle(ChatFormatting.GOLD));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.url", cfg.dynmapMain.isEmpty() ? Component.translatable("dynmap_radar.status.not_set") : cfg.dynmapMain));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.mode", cfg.nameDisplayMode));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.head_size", cfg.headSize));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.interval", cfg.updateInterval));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.marker_scale", String.format("%.1f", cfg.markerScale)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.point_scale", String.format("%.1f", cfg.pointIconScale)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.point_follow_zoom", cfg.pointSizeFollowZoom));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.head_follow_zoom", cfg.headSizeFollowZoom));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.show_in_minimap", cfg.markerShowInMinimap));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.minimap_shapes", cfg.minimapShowShapes));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.cull_radius", String.format("%.0f", cfg.minimapCullRadius)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.waypoint_color", String.format("%06X", cfg.waypointColor)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.point_min_scale", String.format("%.2f", cfg.pointMinScale)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.world_layers", formatLayerList(cfg.worldLayerVisibility, cfg.layerDefaults)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.minimap_layers", formatLayerList(cfg.minimapLayerVisibility, cfg.layerDefaults)));
         if (!cfg.dimensionMapping.isEmpty()) {
             for (Map.Entry<String, String> e : cfg.dimensionMapping.entrySet()) {
-                source.sendFeedback(Component.literal("Dimension: " + e.getKey() + " -> " + e.getValue()));
+                source.sendFeedback(Component.translatable("dynmap_radar.status.dim_mapping", e.getKey(), e.getValue()));
             }
         }
         return 1;
@@ -224,7 +244,7 @@ public class DynmapRadarCommands {
 
     private static String formatLayerList(Map<String, Boolean> visibility, Map<String, Boolean> defaults) {
         MarkerState ms = DynmapRadarClient.DATA_FETCHER.getMarkerState();
-        if (ms.sets.isEmpty()) return "<none>";
+        if (ms.sets.isEmpty()) return Component.translatable("dynmap_radar.status.none").getString();
         List<String> shown = new ArrayList<>();
         List<String> hidden = new ArrayList<>();
         for (String id : ms.sets.keySet()) {
@@ -240,16 +260,20 @@ public class DynmapRadarCommands {
     private static int showLayers(FabricClientCommandSource source, boolean isMinimap) {
         MarkerState ms = DynmapRadarClient.DATA_FETCHER.getMarkerState();
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
-        String title = isMinimap ? "--- Minimap Marker Sets ---" : "--- World Map Marker Sets ---";
-        source.sendFeedback(Component.literal(title).withStyle(ChatFormatting.GOLD));
+        String titleKey = isMinimap ? "dynmap_radar.layer.minimap_title" : "dynmap_radar.layer.worldmap_title";
+        source.sendFeedback(Component.translatable(titleKey).withStyle(ChatFormatting.GOLD));
         for (MarkerState.MarkerSet s : ms.sets.values()) {
             boolean visible = isMinimap ? cfg.isLayerVisibleMinimap(s.id()) : cfg.isLayerVisibleWorldmap(s.id());
             String prefix = visible ? ChatFormatting.GREEN + "[SHOW]" : ChatFormatting.RED + "[HIDE]";
             source.sendFeedback(Component.literal(prefix + " " + s.id() + " - " + s.label()));
         }
         if (ms.sets.isEmpty())
-            source.sendFeedback(Component.literal("<none>").withStyle(ChatFormatting.GRAY));
+            source.sendFeedback(Component.translatable("dynmap_radar.status.none").withStyle(ChatFormatting.GRAY));
         return 1;
+    }
+
+    private static MutableComponent targetName(boolean isMinimap) {
+        return Component.translatable(isMinimap ? "dynmap_radar.target.minimap" : "dynmap_radar.target.worldmap");
     }
 
     private static int layerShow(FabricClientCommandSource source, String setId, boolean isMinimap) {
@@ -257,8 +281,7 @@ public class DynmapRadarCommands {
         if (isMinimap) cfg.setLayerVisibleMinimap(setId, true);
         else cfg.setLayerVisibleWorldmap(setId, true);
         DynmapRadarClient.CONFIG_MANAGER.save();
-        String target = isMinimap ? "minimap" : "world";
-        source.sendFeedback(Component.literal("Layer '" + setId + "' is now SHOWN on " + target + ".").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.layer.shown", setId, targetName(isMinimap)).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
@@ -267,8 +290,7 @@ public class DynmapRadarCommands {
         if (isMinimap) cfg.setLayerVisibleMinimap(setId, false);
         else cfg.setLayerVisibleWorldmap(setId, false);
         DynmapRadarClient.CONFIG_MANAGER.save();
-        String target = isMinimap ? "minimap" : "world";
-        source.sendFeedback(Component.literal("Layer '" + setId + "' is now HIDDEN on " + target + ".").withStyle(ChatFormatting.RED));
+        source.sendFeedback(Component.translatable("dynmap_radar.layer.hidden", setId, targetName(isMinimap)).withStyle(ChatFormatting.RED));
         return 1;
     }
 
@@ -277,28 +299,27 @@ public class DynmapRadarCommands {
         if (isMinimap) cfg.minimapLayerVisibility.clear();
         else cfg.worldLayerVisibility.clear();
         DynmapRadarClient.CONFIG_MANAGER.save();
-        String target = isMinimap ? "minimap" : "world";
-        source.sendFeedback(Component.literal("All layers are now SHOWN on " + target + ".").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.layer.show_all", targetName(isMinimap)).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int layerReset(FabricClientCommandSource source, String setId) {
         DynmapRadarClient.CONFIG_MANAGER.getConfig().resetLayer(setId);
         DynmapRadarClient.CONFIG_MANAGER.save();
-        source.sendFeedback(Component.literal("Layer '" + setId + "' reset to Dynmap defaults.").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.layer.reset_done", setId).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int showDims(FabricClientCommandSource source) {
         Map<String, String> mapping = DynmapRadarClient.CONFIG_MANAGER.getConfig().dimensionMapping;
-        source.sendFeedback(Component.literal("--- Dimension Mapping ---").withStyle(ChatFormatting.GOLD));
+        source.sendFeedback(Component.translatable("dynmap_radar.dim.title").withStyle(ChatFormatting.GOLD));
         String currentXaero = "";
         if (Minecraft.getInstance().level != null) {
             currentXaero = Minecraft.getInstance().level.dimension().location().toString();
         }
-        source.sendFeedback(Component.literal("Current Xaero dimension: " + currentXaero));
+        source.sendFeedback(Component.translatable("dynmap_radar.dim.current", currentXaero));
         if (mapping.isEmpty()) {
-            source.sendFeedback(Component.literal("<no mappings>").withStyle(ChatFormatting.GRAY));
+            source.sendFeedback(Component.translatable("dynmap_radar.dim.no_mapping").withStyle(ChatFormatting.GRAY));
         } else {
             for (Map.Entry<String, String> e : mapping.entrySet()) {
                 source.sendFeedback(Component.literal("  " + e.getKey() + " -> " + e.getValue()));
@@ -312,37 +333,37 @@ public class DynmapRadarCommands {
         try {
             ResourceLocation rl = new ResourceLocation(xaeroDim);
         } catch (Exception e) {
-            source.sendFeedback(Component.literal("Invalid dimension format. Use namespace:path (e.g. minecraft:overworld)").withStyle(ChatFormatting.RED));
+            source.sendFeedback(Component.translatable("dynmap_radar.dim.invalid_format").withStyle(ChatFormatting.RED));
             return 0;
         }
         DynmapRadarClient.CONFIG_MANAGER.getConfig().dimensionMapping.put(dynmapWorld, xaeroDim);
         DynmapRadarClient.CONFIG_MANAGER.save();
-        source.sendFeedback(Component.literal("Mapped dynmap world '" + dynmapWorld + "' -> '" + xaeroDim + "'").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.dim.mapped", dynmapWorld, xaeroDim).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int dimMapCurrent(FabricClientCommandSource source) {
         if (Minecraft.getInstance().level == null) {
-            source.sendFeedback(Component.literal("Not in a world.").withStyle(ChatFormatting.RED));
+            source.sendFeedback(Component.translatable("dynmap_radar.dim.not_in_world").withStyle(ChatFormatting.RED));
             return 0;
         }
         String current = Minecraft.getInstance().level.dimension().location().toString();
         DynmapRadarClient.CONFIG_MANAGER.getConfig().dimensionMapping.put("world", current);
         DynmapRadarClient.CONFIG_MANAGER.save();
-        source.sendFeedback(Component.literal("Mapped dynmap 'world' -> '" + current + "'").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.dim.mapped_current", current).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int dimUnmap(FabricClientCommandSource source, String dynmapWorld) {
         DynmapRadarClient.CONFIG_MANAGER.getConfig().dimensionMapping.remove(dynmapWorld);
         DynmapRadarClient.CONFIG_MANAGER.save();
-        source.sendFeedback(Component.literal("Removed mapping for dynmap world '" + dynmapWorld + "'").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.dim.unmapped", dynmapWorld).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int reload(FabricClientCommandSource source) {
         DynmapRadarClient.CONFIG_MANAGER.reload();
-        source.sendFeedback(Component.literal("Config reloaded.").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.reload.done").withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
@@ -351,7 +372,7 @@ public class DynmapRadarCommands {
         DynmapRadarClient.ICON_MANAGER.clearCache();
         DynmapRadarClient.ICON_MANAGER.clearDiskCache();
         DynmapRadarClient.DATA_FETCHER.doFetch();
-        source.sendFeedback(Component.literal("All cached data cleared. Re-fetching...").withStyle(ChatFormatting.GREEN));
+        source.sendFeedback(Component.translatable("dynmap_radar.clear_cache.done").withStyle(ChatFormatting.GREEN));
         return 1;
     }
 }

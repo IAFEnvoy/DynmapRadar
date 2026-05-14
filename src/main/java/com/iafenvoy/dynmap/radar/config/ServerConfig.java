@@ -75,6 +75,9 @@ public class ServerConfig {
     @SerializedName("waypointColor")
     public int waypointColor = 0xFFFFFF;
 
+    @SerializedName("pointMinScale")
+    public double pointMinScale = 0;
+
     public ServerConfig() {
     }
 
