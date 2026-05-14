@@ -9,10 +9,8 @@ and [Xaero's Minimap](https://modrinth.com/mod/xaeros-minimap).
 ### Player Tracking
 
 - Shows all online players from a Dynmap server on Xaero's World Map and Minimap
-- Renders player heads using real Minecraft skins (vanilla `PlayerFaceRenderer`)
 - Displays player names below heads (supports NAME / ACCOUNT display mode)
 - Configurable head size, scale, and update interval
-- Automatically excludes locally-loaded (nearby) players
 - Minimap distance culling — hides players beyond configurable radius (default 200 blocks)
 
 ### Marker Rendering
@@ -26,21 +24,23 @@ and [Xaero's Minimap](https://modrinth.com/mod/xaeros-minimap).
 - Configurable marker scale, point icon scale, and follow-zoom behavior
 - **Separate layer visibility** for world map and minimap — show/hide individual marker sets independently
 - Minimap distance culling — hides distant markers beyond configurable radius (default 200 blocks)
+- **Point marker minimum scale** — hide point markers when zoomed out past a threshold (configurable)
+- Periodic full marker refresh every 30 polls — stale/deleted markers are cleaned up automatically
 
 ### Right-Click Menu (World Map)
 
 - **Copy Name** — copy marker/player name to clipboard
 - **Copy Coordinates** — copy `x y z` to clipboard
 - **Copy Full Info** — copy name + coordinates + description (markers only)
-- **Teleport** — teleport to the marker/player using Xaero's built-in teleporter (respects Xaero's teleport command
-  settings)
+- **Teleport** — teleport to the marker/player using Xaero's built-in teleporter
 - **Create Waypoint** — instantly create a Xaero Minimap waypoint at the marker/player location (configurable color)
 
-### Minimap Support
+### Dimension Mapping
 
-- Optional rendering of markers and player heads on Xaero's Minimap
-- Shape rendering on minimap (area/circle/polyline) can be toggled separately
-- Configurable distance culling radius to keep minimap clean
+- **Required** — markers and players only render on dimensions that have been explicitly mapped
+- Maps Dynmap world names (e.g. `world`, `DIM-1`) to Xaero dimension IDs (e.g. `minecraft:overworld`)
+- Auto-complete for both Dynmap world names and Xaero dimension IDs
+- Separate mappings per server configuration
 
 ## Dependencies
 
@@ -53,8 +53,9 @@ and [Xaero's Minimap](https://modrinth.com/mod/xaeros-minimap).
 1. Install the mod and dependencies
 2. Join a server that has Dynmap running
 3. Set the Dynmap URL: `/dradar settings url set http://yourserver.com:8123`
-4. Open Xaero's World Map — players and markers will appear
-5. Right-click any marker or player for options (copy, teleport, create waypoint)
+4. Map the current dimension: `/dradar dim mapCurrent`
+5. Open Xaero's World Map — players and markers will appear
+6. Right-click any marker or player for options (copy, teleport, create waypoint)
 
 ## Important Notes
 
@@ -80,20 +81,21 @@ All commands use `/dradar`
 
 **Available settings keys:**
 
-| Key                 | Type   | Default    | Range              | Description                                             |
-|---------------------|--------|------------|--------------------|---------------------------------------------------------|
-| `url`               | string | `""`       | —                  | Dynmap server base URL (e.g. `http://example.com:8123`) |
-| `mode`              | string | `NAME`     | `NAME` / `ACCOUNT` | Player display mode                                     |
-| `headSize`          | int    | `24`       | 8–64               | Player head icon size                                   |
-| `markerScale`       | double | `2.0`      | 0.1–10             | Overall marker render scale                             |
-| `pointScale`        | double | `1.0`      | 0.25–10            | Point icon scale multiplier                             |
-| `pointFollowZoom`   | bool   | `true`     | —                  | Point icon size follows map zoom                        |
-| `headFollowZoom`    | bool   | `false`    | —                  | Head icon size follows map zoom                         |
-| `showInMinimap`     | bool   | `false`    | —                  | Show markers/players on minimap                         |
-| `minimapShapes`     | bool   | `false`    | —                  | Render area/circle/polyline shapes on minimap           |
-| `minimapCullRadius` | double | `200`      | 10–10000           | Hide minimap elements beyond this radius (blocks)       |
-| `waypointColor`     | int    | `0xFFFFFF` | 0–0xFFFFFF         | Color of created waypoints (hex RGB, e.g. `0xFF5555`)   |
-| `interval`          | int    | `1000`     | 100–60000          | Data fetch interval in ms                               |
+| Key                 | Type   | Default    | Range              | Description                                                      |
+|---------------------|--------|------------|--------------------|------------------------------------------------------------------|
+| `url`               | string | `""`       | —                  | Dynmap server base URL (e.g. `http://example.com:8123`)          |
+| `mode`              | string | `NAME`     | `NAME` / `ACCOUNT` | Player display mode                                              |
+| `headSize`          | int    | `24`       | 8–64               | Player head icon size                                            |
+| `markerScale`       | double | `2.0`      | 0.1–10             | Overall marker render scale                                      |
+| `pointScale`        | double | `1.0`      | 0.25–10            | Point icon scale multiplier                                      |
+| `pointFollowZoom`   | bool   | `true`     | —                  | Point icon size follows map zoom                                 |
+| `headFollowZoom`    | bool   | `false`    | —                  | Head icon size follows map zoom                                  |
+| `showInMinimap`     | bool   | `false`    | —                  | Show markers/players on minimap                                  |
+| `minimapShapes`     | bool   | `false`    | —                  | Render area/circle/polyline shapes on minimap                    |
+| `minimapCullRadius` | double | `200`      | 10–10000           | Hide minimap elements beyond this radius (blocks)                |
+| `waypointColor`     | int    | `0xFFFFFF` | 0–0xFFFFFF         | Color of created waypoints (hex RGB, e.g. `16711680` for red)    |
+| `pointMinScale`     | double | `0`        | 0–10               | Hide point markers when zoomed below this scale (0 = always show) |
+| `interval`          | int    | `1000`     | 100–60000          | Data fetch interval in ms                                        |
 
 ### Layer Management
 
@@ -113,9 +115,18 @@ Layer visibility is managed **separately** for world map and minimap.
 
 ### Dimension Mapping
 
-| Command                                    | Description                             |
-|--------------------------------------------|-----------------------------------------|
-| `/dradar dim list`                         | Show current dimension mappings         |
-| `/dradar dim map <dynmapWorld> <xaeroDim>` | Map a Dynmap world to a dimension       |
-| `/dradar dim unmap <dynmapWorld>`          | Remove a dimension mapping              |
-| `/dradar dim mapCurrent`                   | Map Dynmap "world" to current dimension |
+**Required for rendering.** No rendering occurs without at least one dimension mapped.
+
+| Command                                    | Description                                                 |
+|--------------------------------------------|-------------------------------------------------------------|
+| `/dradar dim list`                         | Show current dimension mappings                             |
+| `/dradar dim map <dynmapWorld> <xaeroDim>` | Map a Dynmap world to a Xaero dimension (both auto-complete) |
+| `/dradar dim unmap <dynmapWorld>`          | Remove a dimension mapping                                  |
+| `/dradar dim mapCurrent`                   | Map Dynmap "world" to current dimension                     |
+
+### Other
+
+| Command           | Description                        |
+|-------------------|------------------------------------|
+| `/dradar reload`   | Reload the config file             |
+| `/dradar clearCache` | Clear all cached data and re-fetch |

@@ -14,6 +14,8 @@ public class DynmapPlayerElementRenderContext {
     public MultiTextureRenderTypeRenderer uniqueTextureUIObjectRenderer;
     public ResourceKey<Level> mapDimId;
     public double cachedScale;
-    /** Camera position for minimap distance culling. Set by preRender. */
+    /**
+     * Camera position for minimap distance culling. Set by preRender.
+     */
     public double cameraX, cameraZ;
 }

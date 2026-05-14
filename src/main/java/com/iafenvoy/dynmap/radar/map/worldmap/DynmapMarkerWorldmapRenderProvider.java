@@ -9,6 +9,7 @@ import xaero.map.WorldMapSession;
 import xaero.map.element.MapElementRenderProvider;
 import xaero.map.element.render.ElementRenderLocation;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -23,23 +24,26 @@ public class DynmapMarkerWorldmapRenderProvider extends MapElementRenderProvider
 
         // If no dimension mapping is configured, don't render anything
         if (dimMapping.isEmpty()) {
-            this.iterator = List.<DynmapMarkerElement>of().iterator();
+            this.iterator = Collections.emptyIterator();
             return;
         }
 
         // Check if current Xaero dimension matches any mapping
         WorldMapSession session = WorldMapSession.getCurrentSession();
         if (session == null) {
-            this.iterator = List.<DynmapMarkerElement>of().iterator();
+            this.iterator = Collections.emptyIterator();
             return;
         }
         String currentXaeroDim = session.getMapProcessor().getMapWorld().getCurrentDimensionId().location().toString();
         boolean matches = false;
         for (String mappedDim : dimMapping.values()) {
-            if (mappedDim.equals(currentXaeroDim)) { matches = true; break; }
+            if (mappedDim.equals(currentXaeroDim)) {
+                matches = true;
+                break;
+            }
         }
         if (!matches) {
-            this.iterator = List.<DynmapMarkerElement>of().iterator();
+            this.iterator = Collections.emptyIterator();
             return;
         }
 

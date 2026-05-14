@@ -30,7 +30,7 @@ public class DynmapMarkerWorldmapReader extends MapElementReader<DynmapMarkerEle
     public boolean isHidden(DynmapMarkerElement e, DynmapPlayerElementRenderContext c) {
         if (e.type == DynmapMarkerElement.Type.POINT) {
             double minScale = DynmapRadarClient.CONFIG_MANAGER.getConfig().pointMinScale;
-            if (minScale > 0 && c.cachedScale < minScale) return true;
+            return minScale > 0 && c.cachedScale < minScale;
         }
         return false;
     }

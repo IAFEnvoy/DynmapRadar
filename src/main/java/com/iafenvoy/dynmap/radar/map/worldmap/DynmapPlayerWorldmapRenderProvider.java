@@ -97,7 +97,10 @@ public class DynmapPlayerWorldmapRenderProvider extends MapElementRenderProvider
         String currentXaeroDim = session.getMapProcessor().getMapWorld().getCurrentDimensionId().location().toString();
         boolean matches = false;
         for (String mappedDim : dimMapping.values()) {
-            if (mappedDim.equals(currentXaeroDim)) { matches = true; break; }
+            if (mappedDim.equals(currentXaeroDim)) {
+                matches = true;
+                break;
+            }
         }
         if (!matches) return;
 

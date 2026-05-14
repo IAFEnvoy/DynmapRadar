@@ -34,7 +34,9 @@ public class DynmapDataFetcher {
         return this.currentPlayers;
     }
 
-    /** Set of Dynmap world names (e.g. "world", "DIM-1", "DIM1") from /up/configuration. */
+    /**
+     * Set of Dynmap world names (e.g. "world", "DIM-1", "DIM1") from /up/configuration.
+     */
     public Set<String> getDynmapWorlds() {
         return this.dynmapWorlds;
     }
@@ -158,7 +160,7 @@ public class DynmapDataFetcher {
         Map<String, List<MarkerState.AreaMarker>> newAreas = new ConcurrentHashMap<>();
         Map<String, List<MarkerState.PolyLineMarker>> newLines = new ConcurrentHashMap<>();
         Map<String, List<MarkerState.CircleMarker>> newCircles = new ConcurrentHashMap<>();
-        fetchInitialMarkersIntoMaps(baseUrl, newPoints, newAreas, newLines, newCircles);
+        this.fetchInitialMarkersIntoMaps(baseUrl, newPoints, newAreas, newLines, newCircles);
         this.markerState.swapMarkerData(newPoints, newAreas, newLines, newCircles);
     }
 
@@ -167,7 +169,7 @@ public class DynmapDataFetcher {
      * Used for both initial load (into markerState directly) and periodic refresh (via refreshMarkersFromFullSnapshot).
      */
     private void fetchInitialMarkers(String baseUrl) {
-        fetchInitialMarkersIntoMaps(baseUrl,
+        this.fetchInitialMarkersIntoMaps(baseUrl,
                 this.markerState.pointMarkers,
                 this.markerState.areaMarkers,
                 this.markerState.lineMarkers,
@@ -178,10 +180,10 @@ public class DynmapDataFetcher {
      * Populate the given maps from marker_world.json. All inner lists use CopyOnWriteArrayList.
      */
     private void fetchInitialMarkersIntoMaps(String baseUrl,
-                                              Map<String, List<MarkerState.PointMarker>> pointsOut,
-                                              Map<String, List<MarkerState.AreaMarker>> areasOut,
-                                              Map<String, List<MarkerState.PolyLineMarker>> linesOut,
-                                              Map<String, List<MarkerState.CircleMarker>> circlesOut) {
+                                             Map<String, List<MarkerState.PointMarker>> pointsOut,
+                                             Map<String, List<MarkerState.AreaMarker>> areasOut,
+                                             Map<String, List<MarkerState.PolyLineMarker>> linesOut,
+                                             Map<String, List<MarkerState.CircleMarker>> circlesOut) {
         String json = HttpUtil.getString(baseUrl + "/tiles/_markers_/marker_world.json", 5000, 10000);
         if (json == null) return;
         try {

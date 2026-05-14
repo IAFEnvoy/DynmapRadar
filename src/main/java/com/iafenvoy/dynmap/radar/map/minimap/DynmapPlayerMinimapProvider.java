@@ -1,19 +1,18 @@
 package com.iafenvoy.dynmap.radar.map.minimap;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
+import com.iafenvoy.dynmap.radar.config.ServerConfig;
 import com.iafenvoy.dynmap.radar.data.DynmapPlayerData;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
+import xaero.hud.minimap.BuiltInHudModules;
 import xaero.hud.minimap.element.render.MinimapElementRenderLocation;
 import xaero.hud.minimap.element.render.MinimapElementRenderProvider;
+import xaero.hud.minimap.module.MinimapSession;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class DynmapPlayerMinimapProvider extends MinimapElementRenderProvider<DynmapPlayerElement, DynmapPlayerElementRenderContext> {
     private final List<DynmapPlayerElement> elements = new ArrayList<>();
@@ -22,6 +21,33 @@ public class DynmapPlayerMinimapProvider extends MinimapElementRenderProvider<Dy
     @Override
     public void begin(MinimapElementRenderLocation l, DynmapPlayerElementRenderContext ctx) {
         this.elements.clear();
+
+        ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        Map<String, String> dimMapping = cfg.dimensionMapping;
+        if (dimMapping.isEmpty()) {
+            this.iterator = Collections.emptyIterator();
+            return;
+        }
+
+        MinimapSession session = BuiltInHudModules.MINIMAP.getCurrentSession();
+        if (session == null) {
+            this.iterator = Collections.emptyIterator();
+            return;
+        }
+        String currentXaeroDim = Minecraft.getInstance().level != null
+                ? Minecraft.getInstance().level.dimension().location().toString() : "";
+        boolean matches = false;
+        for (String mappedDim : dimMapping.values()) {
+            if (mappedDim.equals(currentXaeroDim)) {
+                matches = true;
+                break;
+            }
+        }
+        if (!matches) {
+            this.iterator = Collections.emptyIterator();
+            return;
+        }
+
         // Exclude locally-loaded players (minimap already renders them natively)
         Set<String> localNames = new HashSet<>();
         Minecraft mc = Minecraft.getInstance();
@@ -32,8 +58,7 @@ public class DynmapPlayerMinimapProvider extends MinimapElementRenderProvider<Dy
         for (DynmapPlayerData data : DynmapRadarClient.DATA_FETCHER.getCurrentPlayers()) {
             if (localNames.contains(data.account.toLowerCase()) || localNames.contains(data.name.toLowerCase()))
                 continue;
-            String name = "ACCOUNT".equalsIgnoreCase(DynmapRadarClient.CONFIG_MANAGER.getConfig().nameDisplayMode)
-                    ? data.account : data.name;
+            String name = "ACCOUNT".equalsIgnoreCase(cfg.nameDisplayMode) ? data.account : data.name;
             this.elements.add(new DynmapPlayerElement(data, name));
         }
         this.iterator = this.elements.iterator();

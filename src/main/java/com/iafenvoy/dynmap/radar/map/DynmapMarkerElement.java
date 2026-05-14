@@ -86,15 +86,15 @@ public class DynmapMarkerElement {
 
     // Convenience getters
     public double x() {
-        return pos.x;
+        return this.pos.x;
     }
 
     public double y() {
-        return pos.y;
+        return this.pos.y;
     }
 
     public double z() {
-        return pos.z;
+        return this.pos.z;
     }
 
     // Factory methods

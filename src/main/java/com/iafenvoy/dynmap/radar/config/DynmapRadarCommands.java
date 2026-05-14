@@ -142,10 +142,11 @@ public class DynmapRadarCommands {
             dim.then(literal("map")
                     .then(argument("dynmapWorld", StringArgumentType.word())
                             .suggests((ctx, builder) -> {
-                                        Set<String> worlds = DynmapRadarClient.DATA_FETCHER.getDynmapWorlds();
-                                        if (worlds.isEmpty()) return SharedSuggestionProvider.suggest(List.of("world"), builder);
-                                        return SharedSuggestionProvider.suggest(worlds, builder);
-                                    })
+                                Set<String> worlds = DynmapRadarClient.DATA_FETCHER.getDynmapWorlds();
+                                if (worlds.isEmpty())
+                                    return SharedSuggestionProvider.suggest(List.of("world"), builder);
+                                return SharedSuggestionProvider.suggest(worlds, builder);
+                            })
                             .then(argument("xaeroDimension", StringArgumentType.word())
                                     .suggests((ctx, builder) -> {
                                         List<String> dims = new ArrayList<>();
