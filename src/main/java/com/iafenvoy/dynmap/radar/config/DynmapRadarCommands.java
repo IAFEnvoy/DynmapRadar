@@ -1,6 +1,7 @@
 package com.iafenvoy.dynmap.radar.config;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
+import com.iafenvoy.dynmap.radar.data.DynmapDataStorage;
 import com.iafenvoy.dynmap.radar.data.MarkerState;
 import com.iafenvoy.dynmap.radar.util.CommandUtil;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -142,7 +143,7 @@ public class DynmapRadarCommands {
             dim.then(literal("map")
                     .then(argument("dynmapWorld", StringArgumentType.word())
                             .suggests((ctx, builder) -> {
-                                Set<String> worlds = DynmapRadarClient.DATA_FETCHER.getDynmapWorlds();
+                                Set<String> worlds = DynmapRadarClient.DATA_FETCHER.getStorage().getDynmapWorlds();
                                 if (worlds.isEmpty())
                                     return SharedSuggestionProvider.suggest(List.of("world"), builder);
                                 return SharedSuggestionProvider.suggest(worlds, builder);
@@ -227,28 +228,29 @@ public class DynmapRadarCommands {
         map.then(literal("show")
                 .then(argument("setId", StringArgumentType.greedyString())
                         .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
-                                DynmapRadarClient.DATA_FETCHER.getMarkerState().sets.keySet(), b))
+                                DynmapRadarClient.DATA_FETCHER.getStorage().getMarkerSets().keySet(), b))
                         .executes(ctx -> layerShow(ctx.getSource(), StringArgumentType.getString(ctx, "setId"), isMinimap))));
         map.then(literal("hide")
                 .then(argument("setId", StringArgumentType.greedyString())
                         .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
-                                DynmapRadarClient.DATA_FETCHER.getMarkerState().sets.keySet(), b))
+                                DynmapRadarClient.DATA_FETCHER.getStorage().getMarkerSets().keySet(), b))
                         .executes(ctx -> layerHide(ctx.getSource(), StringArgumentType.getString(ctx, "setId"), isMinimap))));
         map.then(literal("showAll").executes(ctx -> layerShowAll(ctx.getSource(), isMinimap)));
         map.then(literal("reset")
                 .then(argument("setId", StringArgumentType.greedyString())
                         .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
-                                DynmapRadarClient.DATA_FETCHER.getMarkerState().sets.keySet(), b))
+                                DynmapRadarClient.DATA_FETCHER.getStorage().getMarkerSets().keySet(), b))
                         .executes(ctx -> layerReset(ctx.getSource(), StringArgumentType.getString(ctx, "setId")))));
         return map;
     }
 
     private static String formatLayerList(Map<String, Boolean> visibility, Map<String, Boolean> defaults) {
-        MarkerState ms = DynmapRadarClient.DATA_FETCHER.getMarkerState();
-        if (ms.sets.isEmpty()) return Component.translatable("dynmap_radar.status.none").getString();
+        DynmapDataStorage storage = DynmapRadarClient.DATA_FETCHER.getStorage();
+        Map<String, MarkerState.MarkerSet> sets = storage.getMarkerSets();
+        if (sets.isEmpty()) return Component.translatable("dynmap_radar.status.none").getString();
         List<String> shown = new ArrayList<>();
         List<String> hidden = new ArrayList<>();
-        for (String id : ms.sets.keySet()) {
+        for (String id : sets.keySet()) {
             if (visibility.containsKey(id) ? visibility.get(id) : (defaults.get(id) == null || !defaults.get(id)))
                 shown.add(id);
             else
@@ -259,16 +261,16 @@ public class DynmapRadarCommands {
     }
 
     private static int showLayers(FabricClientCommandSource source, boolean isMinimap) {
-        MarkerState ms = DynmapRadarClient.DATA_FETCHER.getMarkerState();
+        DynmapDataStorage storage = DynmapRadarClient.DATA_FETCHER.getStorage();
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
         String titleKey = isMinimap ? "dynmap_radar.layer.minimap_title" : "dynmap_radar.layer.worldmap_title";
         source.sendFeedback(Component.translatable(titleKey).withStyle(ChatFormatting.GOLD));
-        for (MarkerState.MarkerSet s : ms.sets.values()) {
+        for (MarkerState.MarkerSet s : storage.getMarkerSets().values()) {
             boolean visible = isMinimap ? cfg.isLayerVisibleMinimap(s.id()) : cfg.isLayerVisibleWorldmap(s.id());
             String prefix = visible ? ChatFormatting.GREEN + "[SHOW]" : ChatFormatting.RED + "[HIDE]";
             source.sendFeedback(Component.literal(prefix + " " + s.id() + " - " + s.label()));
         }
-        if (ms.sets.isEmpty())
+        if (storage.getMarkerSets().isEmpty())
             source.sendFeedback(Component.translatable("dynmap_radar.status.none").withStyle(ChatFormatting.GRAY));
         return 1;
     }

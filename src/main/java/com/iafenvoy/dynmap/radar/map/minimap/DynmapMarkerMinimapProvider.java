@@ -2,6 +2,7 @@ package com.iafenvoy.dynmap.radar.map.minimap;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
 import com.iafenvoy.dynmap.radar.config.ServerConfig;
+import com.iafenvoy.dynmap.radar.data.DynmapDataStorage;
 import com.iafenvoy.dynmap.radar.data.MarkerState;
 import com.iafenvoy.dynmap.radar.map.DynmapMarkerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
@@ -46,8 +47,14 @@ public class DynmapMarkerMinimapProvider extends MinimapElementRenderProvider<Dy
             return;
         }
 
-        MarkerState state = DynmapRadarClient.DATA_FETCHER.getMarkerState();
-        this.iterator = (state != null ? state.collectElements(cfg::isLayerVisibleMinimap, true) : List.<DynmapMarkerElement>of()).iterator();
+        DynmapDataStorage storage = DynmapRadarClient.DATA_FETCHER.getStorage();
+        this.iterator = MarkerState.collectElements(
+                storage.getMarkerSets(),
+                storage.getPointMarkers(),
+                storage.getAreaMarkers(),
+                storage.getLineMarkers(),
+                storage.getCircleMarkers(),
+                cfg::isLayerVisibleMinimap, true).iterator();
     }
 
     @Override

@@ -2,8 +2,8 @@ package com.iafenvoy.dynmap.radar.map.worldmap;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
 import com.iafenvoy.dynmap.radar.config.ServerConfig;
-import com.iafenvoy.dynmap.radar.data.DynmapDataFetcher;
 import com.iafenvoy.dynmap.radar.data.DynmapPlayerData;
+import com.iafenvoy.dynmap.radar.data.DynmapDataStorage;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
 import xaero.map.WorldMapSession;
@@ -24,13 +24,13 @@ import java.util.HashSet;
  * Filters out players that are already loaded by the client.
  */
 public class DynmapPlayerWorldmapRenderProvider extends MapElementRenderProvider<DynmapPlayerElement, DynmapPlayerElementRenderContext> {
-    private final DynmapDataFetcher dataFetcher;
+    private final DynmapDataStorage storage;
     private final List<DynmapPlayerElement> currentElements = new ArrayList<>();
     private Iterator<DynmapPlayerElement> iterator;
     private int currentLocation = -1;
 
-    public DynmapPlayerWorldmapRenderProvider(DynmapDataFetcher dataFetcher) {
-        this.dataFetcher = dataFetcher;
+    public DynmapPlayerWorldmapRenderProvider(DynmapDataStorage storage) {
+        this.storage = storage;
     }
 
     @Override
@@ -82,7 +82,7 @@ public class DynmapPlayerWorldmapRenderProvider extends MapElementRenderProvider
      * Only renders when a dimension mapping matches the current map dimension.
      */
     private void refreshElements() {
-        List<DynmapPlayerData> players = this.dataFetcher.getCurrentPlayers();
+        List<DynmapPlayerData> players = this.storage.getPlayers();
         this.currentElements.clear();
 
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();

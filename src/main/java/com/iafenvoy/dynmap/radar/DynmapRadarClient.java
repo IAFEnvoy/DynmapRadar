@@ -37,7 +37,7 @@ public class DynmapRadarClient implements ClientModInitializer {
         DynmapRadarCommands.register();
 
         // Create WorldMap renderers — both use shared IconManager
-        playerRenderer = DynmapPlayerWorldmapRenderer.create(DATA_FETCHER);
+        playerRenderer = DynmapPlayerWorldmapRenderer.create(DATA_FETCHER.getStorage());
         markerRenderer = DynmapMarkerWorldmapRenderer.create(ICON_MANAGER);
 
         // Create minimap renderers — marker shares IconManager

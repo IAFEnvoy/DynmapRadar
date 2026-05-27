@@ -2,7 +2,7 @@ package com.iafenvoy.dynmap.radar.map.worldmap;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
 import com.iafenvoy.dynmap.radar.config.ServerConfig;
-import com.iafenvoy.dynmap.radar.data.DynmapDataFetcher;
+import com.iafenvoy.dynmap.radar.data.DynmapDataStorage;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -241,9 +241,9 @@ public class DynmapPlayerWorldmapRenderer extends MapElementRenderer<DynmapPlaye
 
     // =================== Factory ===================
 
-    public static DynmapPlayerWorldmapRenderer create(DynmapDataFetcher dataFetcher) {
+    public static DynmapPlayerWorldmapRenderer create(DynmapDataStorage storage) {
         DynmapPlayerElementRenderContext context = new DynmapPlayerElementRenderContext();
-        DynmapPlayerWorldmapRenderProvider provider = new DynmapPlayerWorldmapRenderProvider(dataFetcher);
+        DynmapPlayerWorldmapRenderProvider provider = new DynmapPlayerWorldmapRenderProvider(storage);
         DynmapPlayerWorldmapReader reader = new DynmapPlayerWorldmapReader();
         return new DynmapPlayerWorldmapRenderer(context, provider, reader);
     }

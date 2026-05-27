@@ -2,6 +2,7 @@ package com.iafenvoy.dynmap.radar.map.worldmap;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
 import com.iafenvoy.dynmap.radar.config.ServerConfig;
+import com.iafenvoy.dynmap.radar.data.DynmapDataStorage;
 import com.iafenvoy.dynmap.radar.data.MarkerState;
 import com.iafenvoy.dynmap.radar.map.DynmapMarkerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
@@ -47,8 +48,14 @@ public class DynmapMarkerWorldmapRenderProvider extends MapElementRenderProvider
             return;
         }
 
-        MarkerState state = DynmapRadarClient.DATA_FETCHER.getMarkerState();
-        this.iterator = (state != null ? state.collectElements(cfg::isLayerVisibleWorldmap, false) : List.<DynmapMarkerElement>of()).iterator();
+        DynmapDataStorage storage = DynmapRadarClient.DATA_FETCHER.getStorage();
+        this.iterator = MarkerState.collectElements(
+                storage.getMarkerSets(),
+                storage.getPointMarkers(),
+                storage.getAreaMarkers(),
+                storage.getLineMarkers(),
+                storage.getCircleMarkers(),
+                cfg::isLayerVisibleWorldmap, false).iterator();
     }
 
     @Override

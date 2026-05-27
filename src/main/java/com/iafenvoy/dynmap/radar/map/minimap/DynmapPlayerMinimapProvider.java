@@ -2,6 +2,7 @@ package com.iafenvoy.dynmap.radar.map.minimap;
 
 import com.iafenvoy.dynmap.radar.DynmapRadarClient;
 import com.iafenvoy.dynmap.radar.config.ServerConfig;
+import com.iafenvoy.dynmap.radar.data.DynmapDataStorage;
 import com.iafenvoy.dynmap.radar.data.DynmapPlayerData;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElement;
 import com.iafenvoy.dynmap.radar.map.DynmapPlayerElementRenderContext;
@@ -55,7 +56,8 @@ public class DynmapPlayerMinimapProvider extends MinimapElementRenderProvider<Dy
             localNames.add(p.getGameProfile().getName().toLowerCase());
             localNames.add(p.getName().getString().toLowerCase());
         }
-        for (DynmapPlayerData data : DynmapRadarClient.DATA_FETCHER.getCurrentPlayers()) {
+        DynmapDataStorage storage = DynmapRadarClient.DATA_FETCHER.getStorage();
+        for (DynmapPlayerData data : storage.getPlayers()) {
             if (localNames.contains(data.account.toLowerCase()) || localNames.contains(data.name.toLowerCase()))
                 continue;
             String name = "ACCOUNT".equalsIgnoreCase(cfg.nameDisplayMode) ? data.account : data.name;
