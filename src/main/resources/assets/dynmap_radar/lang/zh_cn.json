@@ -20,6 +20,7 @@
   "dynmap_radar.status.cull_radius": "小地图裁剪半径: %s",
   "dynmap_radar.status.waypoint_color": "路径点颜色: #%s",
   "dynmap_radar.status.point_min_scale": "点状标记最小缩放: %s",
+  "dynmap_radar.status.enabled": "已启用: %s",
   "dynmap_radar.status.world_layers": "大地图图层: %s",
   "dynmap_radar.status.minimap_layers": "小地图图层: %s",
   "dynmap_radar.status.dim_mapping": "维度映射: %s -> %s",

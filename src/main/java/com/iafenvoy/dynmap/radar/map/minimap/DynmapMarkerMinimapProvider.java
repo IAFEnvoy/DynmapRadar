@@ -21,6 +21,10 @@ public class DynmapMarkerMinimapProvider extends MinimapElementRenderProvider<Dy
     @Override
     public void begin(MinimapElementRenderLocation l, DynmapPlayerElementRenderContext ctx) {
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        if (!cfg.enabled) {
+            this.iterator = Collections.emptyIterator();
+            return;
+        }
         Map<String, String> dimMapping = cfg.dimensionMapping;
 
         if (dimMapping.isEmpty()) {

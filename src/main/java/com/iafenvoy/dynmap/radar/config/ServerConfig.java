@@ -78,6 +78,9 @@ public class ServerConfig {
     @SerializedName("pointMinScale")
     public double pointMinScale = 0;
 
+    @SerializedName("enabled")
+    public boolean enabled = true;
+
     public ServerConfig() {
     }
 

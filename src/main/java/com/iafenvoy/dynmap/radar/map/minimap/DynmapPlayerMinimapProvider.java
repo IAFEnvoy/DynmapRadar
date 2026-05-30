@@ -24,6 +24,10 @@ public class DynmapPlayerMinimapProvider extends MinimapElementRenderProvider<Dy
         this.elements.clear();
 
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        if (!cfg.enabled) {
+            this.iterator = Collections.emptyIterator();
+            return;
+        }
         Map<String, String> dimMapping = cfg.dimensionMapping;
         if (dimMapping.isEmpty()) {
             this.iterator = Collections.emptyIterator();

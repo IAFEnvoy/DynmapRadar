@@ -57,6 +57,7 @@ public class DynmapDataFetcher {
     public CompletableFuture<Void> doFetch() {
         return CompletableFuture.runAsync(() -> {
             ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+            if (!cfg.enabled) return;
             String url = cfg.dynmapMain.trim();
             if (url.isEmpty()) return;
             if (url.endsWith("/")) url = url.substring(0, url.length() - 1);

@@ -86,6 +86,7 @@ public class DynmapPlayerWorldmapRenderProvider extends MapElementRenderProvider
         this.currentElements.clear();
 
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        if (!cfg.enabled) return;
         Map<String, String> dimMapping = cfg.dimensionMapping;
 
         // If no dimension mapping is configured, don't render anything

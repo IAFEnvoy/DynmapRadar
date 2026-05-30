@@ -1,14 +1,12 @@
 package com.iafenvoy.dynmap.radar.data;
 
-import com.iafenvoy.dynmap.radar.map.DynmapPlayerElement;
-
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Central thread-safe data storage for all Dynmap data.
- * 
+ * <p>
  * All mutable state is owned by the fetcher thread which builds new
  * data off-screen, then atomically swaps the snapshot.
  * Render/command threads read the snapshot without any locking risk.
@@ -28,36 +26,64 @@ public class DynmapDataStorage {
 
     // ======================== Atomic read ========================
 
-    public List<DynmapPlayerData> getPlayers() { return players; }
-    public Set<String> getDynmapWorlds() { return dynmapWorlds; }
-    public Map<String, MarkerState.MarkerSet> getMarkerSets() { return markerSets; }
-    public Map<String, List<MarkerState.PointMarker>> getPointMarkers() { return pointMarkers; }
-    public Map<String, List<MarkerState.AreaMarker>> getAreaMarkers() { return areaMarkers; }
-    public Map<String, List<MarkerState.PolyLineMarker>> getLineMarkers() { return lineMarkers; }
-    public Map<String, List<MarkerState.CircleMarker>> getCircleMarkers() { return circleMarkers; }
+    public List<DynmapPlayerData> getPlayers() {
+        return this.players;
+    }
+
+    public Set<String> getDynmapWorlds() {
+        return this.dynmapWorlds;
+    }
+
+    public Map<String, MarkerState.MarkerSet> getMarkerSets() {
+        return this.markerSets;
+    }
+
+    public Map<String, List<MarkerState.PointMarker>> getPointMarkers() {
+        return this.pointMarkers;
+    }
+
+    public Map<String, List<MarkerState.AreaMarker>> getAreaMarkers() {
+        return this.areaMarkers;
+    }
+
+    public Map<String, List<MarkerState.PolyLineMarker>> getLineMarkers() {
+        return this.lineMarkers;
+    }
+
+    public Map<String, List<MarkerState.CircleMarker>> getCircleMarkers() {
+        return this.circleMarkers;
+    }
 
     // ======================== Atomic write ========================
 
     public void updatePlayers(List<DynmapPlayerData> p) {
-        lock.writeLock().lock();
-        try { this.players = List.copyOf(p); }
-        finally { lock.writeLock().unlock(); }
+        this.lock.writeLock().lock();
+        try {
+            this.players = List.copyOf(p);
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
     public void updateDynmapWorlds(Set<String> w) {
-        lock.writeLock().lock();
-        try { this.dynmapWorlds = Set.copyOf(w); }
-        finally { lock.writeLock().unlock(); }
+        this.lock.writeLock().lock();
+        try {
+            this.dynmapWorlds = Set.copyOf(w);
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
-    /** Atomically swap all marker data from maps built in the fetcher thread. */
+    /**
+     * Atomically swap all marker data from maps built in the fetcher thread.
+     */
     public void updateAllMarkers(
             Map<String, MarkerState.MarkerSet> newSets,
             Map<String, List<MarkerState.PointMarker>> newPoints,
             Map<String, List<MarkerState.AreaMarker>> newAreas,
             Map<String, List<MarkerState.PolyLineMarker>> newLines,
             Map<String, List<MarkerState.CircleMarker>> newCircles) {
-        lock.writeLock().lock();
+        this.lock.writeLock().lock();
         try {
             this.markerSets = Collections.unmodifiableMap(new LinkedHashMap<>(newSets));
             this.pointMarkers = freezeMarkerMap(newPoints);
@@ -65,13 +91,15 @@ public class DynmapDataStorage {
             this.lineMarkers = freezeMarkerMap(newLines);
             this.circleMarkers = freezeMarkerMap(newCircles);
         } finally {
-            lock.writeLock().unlock();
+            this.lock.writeLock().unlock();
         }
     }
 
-    /** Reset all data to empty (called on disconnect). */
+    /**
+     * Reset all data to empty (called on disconnect).
+     */
     public void clear() {
-        lock.writeLock().lock();
+        this.lock.writeLock().lock();
         try {
             this.players = List.of();
             this.dynmapWorlds = Set.of();
@@ -81,11 +109,13 @@ public class DynmapDataStorage {
             this.lineMarkers = Map.of();
             this.circleMarkers = Map.of();
         } finally {
-            lock.writeLock().unlock();
+            this.lock.writeLock().unlock();
         }
     }
 
-    /** Deep-freeze a mutable map into an unmodifiable one with unmodifiable lists. */
+    /**
+     * Deep-freeze a mutable map into an unmodifiable one with unmodifiable lists.
+     */
     private static <T> Map<String, List<T>> freezeMarkerMap(Map<String, List<T>> src) {
         Map<String, List<T>> out = new LinkedHashMap<>();
         for (Map.Entry<String, List<T>> e : src.entrySet()) {

@@ -120,6 +120,12 @@ public class DynmapRadarCommands {
                     cfg -> cfg.pointMinScale,
                     (cfg, v) -> cfg.pointMinScale = v);
 
+            CommandUtil.appendSetting(settings, "enabled",
+                    BoolArgumentType.bool(),
+                    BoolArgumentType::getBool,
+                    cfg -> cfg.enabled,
+                    (cfg, v) -> cfg.enabled = v);
+
             CommandUtil.appendSetting(settings, "interval",
                     IntegerArgumentType.integer(100, 60000),
                     IntegerArgumentType::getInteger,
@@ -211,6 +217,7 @@ public class DynmapRadarCommands {
         source.sendFeedback(Component.translatable("dynmap_radar.status.cull_radius", String.format("%.0f", cfg.minimapCullRadius)));
         source.sendFeedback(Component.translatable("dynmap_radar.status.waypoint_color", String.format("%06X", cfg.waypointColor)));
         source.sendFeedback(Component.translatable("dynmap_radar.status.point_min_scale", String.format("%.2f", cfg.pointMinScale)));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.enabled", cfg.enabled));
         source.sendFeedback(Component.translatable("dynmap_radar.status.world_layers", formatLayerList(cfg.worldLayerVisibility, cfg.layerDefaults)));
         source.sendFeedback(Component.translatable("dynmap_radar.status.minimap_layers", formatLayerList(cfg.minimapLayerVisibility, cfg.layerDefaults)));
         if (!cfg.dimensionMapping.isEmpty()) {

@@ -12,7 +12,6 @@ import xaero.map.element.render.ElementRenderLocation;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 public class DynmapMarkerWorldmapRenderProvider extends MapElementRenderProvider<DynmapMarkerElement, DynmapPlayerElementRenderContext> {
@@ -21,6 +20,10 @@ public class DynmapMarkerWorldmapRenderProvider extends MapElementRenderProvider
     @Override
     public void begin(int l, DynmapPlayerElementRenderContext ctx) {
         ServerConfig cfg = DynmapRadarClient.CONFIG_MANAGER.getConfig();
+        if (!cfg.enabled) {
+            this.iterator = Collections.emptyIterator();
+            return;
+        }
         Map<String, String> dimMapping = cfg.dimensionMapping;
 
         // If no dimension mapping is configured, don't render anything
