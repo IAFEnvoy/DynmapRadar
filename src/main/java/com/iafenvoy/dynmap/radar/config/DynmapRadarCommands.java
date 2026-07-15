@@ -126,6 +126,12 @@ public class DynmapRadarCommands {
                     cfg -> cfg.enabled,
                     (cfg, v) -> cfg.enabled = v);
 
+            CommandUtil.appendSetting(settings, "exportWithMap",
+                    BoolArgumentType.bool(),
+                    BoolArgumentType::getBool,
+                    cfg -> cfg.exportWithMap,
+                    (cfg, v) -> cfg.exportWithMap = v);
+
             CommandUtil.appendSetting(settings, "interval",
                     IntegerArgumentType.integer(100, 60000),
                     IntegerArgumentType::getInteger,
@@ -147,14 +153,14 @@ public class DynmapRadarCommands {
             dim.then(literal("list").executes(ctx -> showDims(ctx.getSource())));
 
             dim.then(literal("map")
-                    .then(argument("dynmapWorld", StringArgumentType.word())
+                    .then(argument("dynmapWorld", StringArgumentType.string())
                             .suggests((ctx, builder) -> {
                                 Set<String> worlds = DynmapRadarClient.DATA_FETCHER.getStorage().getDynmapWorlds();
                                 if (worlds.isEmpty())
                                     return SharedSuggestionProvider.suggest(List.of("world"), builder);
                                 return SharedSuggestionProvider.suggest(worlds, builder);
                             })
-                            .then(argument("xaeroDimension", StringArgumentType.word())
+                            .then(argument("xaeroDimension", StringArgumentType.string())
                                     .suggests((ctx, builder) -> {
                                         List<String> dims = new ArrayList<>();
                                         WorldMapSession session = WorldMapSession.getCurrentSession();
@@ -218,6 +224,7 @@ public class DynmapRadarCommands {
         source.sendFeedback(Component.translatable("dynmap_radar.status.waypoint_color", String.format("%06X", cfg.waypointColor)));
         source.sendFeedback(Component.translatable("dynmap_radar.status.point_min_scale", String.format("%.2f", cfg.pointMinScale)));
         source.sendFeedback(Component.translatable("dynmap_radar.status.enabled", cfg.enabled));
+        source.sendFeedback(Component.translatable("dynmap_radar.status.export_with_map", cfg.exportWithMap));
         source.sendFeedback(Component.translatable("dynmap_radar.status.world_layers", formatLayerList(cfg.worldLayerVisibility, cfg.layerDefaults)));
         source.sendFeedback(Component.translatable("dynmap_radar.status.minimap_layers", formatLayerList(cfg.minimapLayerVisibility, cfg.layerDefaults)));
         if (!cfg.dimensionMapping.isEmpty()) {

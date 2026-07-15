@@ -2,25 +2,28 @@
 	"schemaVersion": 1,
 	"id": "dynmap_radar",
 	"version": "${version}",
-	"name": "Dynmap Radar",
-	"description": "Display Dynmap data on Xaero's Minimap and World Map.",
+	"name": "DynmapRadar",
+	"description": "Display Dynmap players on Xaero's World Map with player heads.",
 	"authors": [
 		"IAFEnvoy"
 	],
 	"contact": {
-		"sources": "https://github.com/IAFEnvoy/DynmapRadar"
+		"sources": "https://github.com/DynmapRadar"
 	},
-	"license": "All Right Reserved",
-	"icon": "logo.png",
+	"license": "MIT",
+	"icon": "assets/dynmap_radar/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
 			"com.iafenvoy.dynmap.radar.DynmapRadarClient"
 		]
 	},
+	"mixins": [
+		"dynmap_radar.mixins.json"
+	],
 	"depends": {
-		"minecraft": "1.20.x",
-		"xaeroworldmap": "*",
-		"xaerominimap": "*"
+		"minecraft": "~1.20.1",
+		"fabric-api": "*",
+		"xaeroworldmap": "*"
 	}
 }

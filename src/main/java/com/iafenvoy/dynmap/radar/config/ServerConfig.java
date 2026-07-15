@@ -81,6 +81,9 @@ public class ServerConfig {
     @SerializedName("enabled")
     public boolean enabled = true;
 
+    @SerializedName("exportWithMap")
+    public boolean exportWithMap = false;
+
     public ServerConfig() {
     }
 

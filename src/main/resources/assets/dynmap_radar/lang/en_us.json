@@ -21,6 +21,7 @@
   "dynmap_radar.status.waypoint_color": "Waypoint color: #%s",
   "dynmap_radar.status.point_min_scale": "Point min scale: %s",
   "dynmap_radar.status.enabled": "Enabled: %s",
+  "dynmap_radar.status.export_with_map": "Export with map: %s",
   "dynmap_radar.status.world_layers": "World layers: %s",
   "dynmap_radar.status.minimap_layers": "Minimap layers: %s",
   "dynmap_radar.status.dim_mapping": "Dimension: %s -> %s",
